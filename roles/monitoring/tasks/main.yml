@@ -5,7 +5,32 @@
     update_cache: yes
     cache_valid_time: 3600
 
-# 2. Install Monitoring Stack
+# 2. Add Grafana repository
+- name: Install Grafana repository prerequisites
+  apt:
+    name:
+      - wget
+      - gpg
+    state: present
+    update_cache: yes
+
+- name: Add Grafana GPG key
+  shell: |
+    wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+  args:
+    creates: /etc/apt/keyrings/grafana.gpg
+
+- name: Add Grafana repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+
+- name: Update apt cache after adding Grafana repository
+  apt:
+    update_cache: yes
+
+# 3. Install Monitoring Stack
 - name: Install monitoring packages
   apt:
     name:
