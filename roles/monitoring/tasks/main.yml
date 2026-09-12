@@ -64,7 +64,7 @@
           isDefault: true
 
 # 5. Provision a simple Dashboard
-# Note: This uses a minimal JSON structure for a dashboard
+# 5. Provision a simple Dashboard
 - name: Create Dashboard provisioning config
   copy:
     dest: /etc/grafana/provisioning/dashboards/dashboards.yml
@@ -77,6 +77,14 @@
           type: file
           options:
             path: /var/lib/grafana/dashboards
+
+- name: Create Grafana dashboards directory
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
 
 - name: Copy dashboard JSON
   copy:
