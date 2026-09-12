@@ -1,5 +1,72 @@
 ---
-# Install Monitoring. It must listen .
-# Add Prometheus as a datasource.
-# Add one dashboard with CPU and memory.
-[]
+# 1. Update APT cache
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+# 2. Install Monitoring Stack
+- name: Install monitoring packages
+  apt:
+    name:
+      - prometheus
+      - grafana
+      - prometheus-node-exporter
+    state: present
+
+# 3. Ensure Services are running and enabled
+- name: Start and enable services
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - prometheus
+    - grafana-server
+    - prometheus-node-exporter
+
+# 4. Provision Prometheus as Datasource in Grafana
+- name: Create Grafana datasource provisioning config
+  copy:
+    dest: /etc/grafana/provisioning/datasources/datasource.yml
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://localhost:{{ prometheus_port }}
+          isDefault: true
+
+# 5. Provision a simple Dashboard
+# Note: This uses a minimal JSON structure for a dashboard
+- name: Create Dashboard provisioning config
+  copy:
+    dest: /etc/grafana/provisioning/dashboards/dashboards.yml
+    content: |
+      apiVersion: 1
+      providers:
+        - name: 'Default'
+          orgId: 1
+          folder: ''
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards
+
+- name: Copy dashboard JSON
+  copy:
+    dest: /var/lib/grafana/dashboards/cpu_mem.json
+    content: |
+      {
+        "title": "CPU and Memory",
+        "panels": [
+          { "title": "CPU Usage", "type": "graph", "datasource": "Prometheus" },
+          { "title": "Memory Usage", "type": "graph", "datasource": "Prometheus" }
+        ]
+      }
+
+# 6. Restart Grafana to apply provisioning
+- name: Restart Grafana
+  systemd:
+    name: grafana-server
+    state: restarted
